@@ -1,67 +1,17 @@
-resource "random_password" "password" {
-  length = 16
-  special = true
-  override_special = "_%@"
+
+resource "azurerm_resource_group" "giri2" {
+  name     = "rg015"
+  location = "West europe"
 }
 
-resource   "azurerm_resource_group"   "rg"   { 
-   name   =   var.rg_name
-   location   =   "northeurope" 
- } 
+resource "azurerm_managed_disk" "name" {
+  for_each = var.datadisk
 
- resource   "azurerm_virtual_network"   "myvnet"   { 
-   name   =   var.vnet_name
-   address_space   =   var.vnet_address_space
-   location   =   "northeurope" 
-   resource_group_name   =   azurerm_resource_group.rg.name 
- } 
+  name = format("%s-%s", each.value, each.key)
+  location = azurerm_resource_group.giri2.location
+  resource_group_name = azurerm_resource_group.giri2.name
+  storage_account_type = "StandardSSD_LRS"
+  create_option = "Empty"
+  disk_size_gb = "10"
+}
 
- resource   "azurerm_subnet"   "frontendsubnet"   { 
-   name   =   var.subnet_name
-   resource_group_name   =    azurerm_resource_group.rg.name 
-   virtual_network_name   =   azurerm_virtual_network.myvnet.name 
-   address_prefix   =   var.subnet_address_space 
- } 
-
- resource   "azurerm_public_ip"   "myvm1publicip"   { 
-   name   =   "pip3" 
-   location   =   "northeurope" 
-   resource_group_name   =   azurerm_resource_group.rg.name 
-   allocation_method   =   "Dynamic" 
-   sku   =   "Basic" 
- } 
-
- resource   "azurerm_network_interface"   "myvm1nic"   { 
-   name   =   var.nic_name
-   location   =   "northeurope" 
-   resource_group_name   =   azurerm_resource_group.rg.name 
-
-   ip_configuration   { 
-     name   =   "ipconfig1" 
-     subnet_id   =   azurerm_subnet.frontendsubnet.id 
-     private_ip_address_allocation   =   "Dynamic" 
-     public_ip_address_id   =   azurerm_public_ip.myvm1publicip.id 
-   } 
- } 
-
- resource   "azurerm_windows_virtual_machine"   "example"   { 
-   name                    =   var.vm_name   
-   location                =   "northeurope" 
-   resource_group_name     =   azurerm_resource_group.rg.name 
-   network_interface_ids   =   [ azurerm_network_interface.myvm1nic.id ] 
-   size                    =   var.vm_size 
-   admin_username          =   "testuser" 
-   admin_password          =   random_password.password.result 
-
-   source_image_reference   { 
-     publisher   =   "MicrosoftWindowsServer" 
-     offer       =   "WindowsServer" 
-     sku         =   "2019-Datacenter" 
-     version     =   "latest" 
-   } 
-
-   os_disk   { 
-     caching             =   "ReadWrite" 
-     storage_account_type   =   "Standard_LRS" 
-   } 
- } 
